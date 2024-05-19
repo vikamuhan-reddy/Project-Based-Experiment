@@ -43,15 +43,117 @@ From the HDL code given formulate the correct code  to divert the traffic to pa
 **Program:**
 
 /* Program to implement the given logic function and to verify its operations in quartus using Verilog programming. 
+Developed by: Vikamuhan.N
+RegisterNumber: 212223240181
+*/
+```
+module project_1 (
+    input wire clk,          // Clock signal
+    input wire reset,        // Reset signal
+    input wire userAtMR3,    // User presence at MR3
+    output reg [1:0] light1, // Traffic light for MR1 (00 = Red, 01 = Green, 10 = Yellow)
+    output reg [1:0] light2, // Traffic light for MR2 (00 = Red, 01 = Green, 10 = Yellow)
+    output reg [1:0] light3  // Traffic light for MR3 (00 = Red, 01 = Green, 10 = Yellow)
+);
 
-Developed by: RegisterNumber:*/
+    // State encoding using localparam
+    localparam S0 = 2'b00;
+    localparam S1 = 2'b01;
+    localparam S2 = 2'b10;
+    localparam S3 = 2'b11;
+
+    reg [1:0] current_state, next_state;
+    reg [3:0] counter;
+
+    // Parameters for timing
+    parameter RED_TIME = 5;
+    parameter YELLOW_TIME = 4;
+    parameter GREEN_TIME = 5;
+
+    // State transition logic
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            current_state <= S0;
+            counter <= 0;
+        end else if (userAtMR3) begin
+            // When user is at MR3, set MR1 to green and others to red
+            current_state <= S1; // Directly transition to state S1 for MR1 green light
+            counter <= GREEN_TIME;
+        end else begin
+            if (counter == 0) begin
+                current_state <= next_state;
+                counter <= (next_state == S0 || next_state == S2) ? RED_TIME : YELLOW_TIME;
+                if (next_state == S1 || next_state == S3) begin
+                    counter <= GREEN_TIME;
+                end
+            end else begin
+                counter <= counter - 1;
+            end
+        end
+    end
+
+    // Next state logic
+    always @(*) begin
+        case (current_state)
+            S0: next_state = (counter == 0) ? S1 : S0;
+            S1: next_state = (counter == 0) ? S2 : S1;
+            S2: next_state = (counter == 0) ? S3 : S2;
+            S3: next_state = (counter == 0) ? S0 : S3;
+            default: next_state = S0;
+        endcase
+    end
+
+    // Output logic
+    always @(*) begin
+        // Default all lights to red
+        light1 = 2'b00;
+        light2 = 2'b00;
+        light3 = 2'b00;
+
+        case (current_state)
+            S0: begin
+                // State 0: All red, MR1 yellow for 4 counts
+                if (counter < YELLOW_TIME) light1 = 2'b10; // MR1 Yellow
+            end
+            S1: begin
+                // State 1: MR1 Green for 5 counts, MR1 yellow and MR2 yellow for 4 counts
+                if (counter >= (RED_TIME - GREEN_TIME)) light1 = 2'b01; // MR1 Green
+                else light1 = 2'b10; // MR1 Yellow
+                if (counter < YELLOW_TIME) light2 = 2'b10; // MR2 Yellow
+            end
+            S2: begin
+                // State 2: MR2 Green for 5 counts, MR2 and MR3 yellow for 4 counts
+                if (counter >= (RED_TIME - GREEN_TIME)) light2 = 2'b01; // MR2 Green
+                else light2 = 2'b10; // MR2 Yellow
+                if (counter < YELLOW_TIME) light3 = 2'b10; // MR3 Yellow
+            end
+            S3: begin
+                // State 3: MR3 Green for 5 counts, MR3 Yellow for 4 counts
+                if (counter >= (RED_TIME - GREEN_TIME)) light3 = 2'b01; // MR3 Green
+                else light3 = 2'b10; // MR3 Yellow
+            end
+            default: begin
+                light1 = 2'b00; // Default to Red
+                light2 = 2'b00; // Default to Red
+                light3 = 2'b00; // Default to Red
+            end
+        endcase
+    end
+
+endmodule
+```
 
 **RTL Schematic**
+![image](https://github.com/vikamuhan-reddy/Project-Based-Experiment/assets/144928933/f7c6f1fb-73c9-4c29-8f40-8dae2d6749b4)
+
+
 
 **Output Timing Waveform**
+![image](https://github.com/vikamuhan-reddy/Project-Based-Experiment/assets/144928933/c8636655-9fc4-4445-ae78-a2654fa6c099)
+
 
 **Result:**
-
+The Verilog traffic light controller efficiently manages congestion by prioritizing MR1 when user presence at MR3 is detected, ensuring smooth traffic flow through controlled transitions of lights based on predefined timing sequences, confirmed by simulation results.
 
 
 
